@@ -15,10 +15,11 @@ RUN cd ./Autoware \
 
 # CARLA PythonAPI
 RUN mkdir ./PythonAPI
-ADD --chown=autoware https://carla-releases.s3.eu-west-3.amazonaws.com/Backup/carla-0.9.10-py2.7-linux-x86_64.egg ./PythonAPI
-RUN echo "export PYTHON2_EGG=$(ls /home/autoware/PythonAPI | grep py2.)" >> .bashrc \
-    && echo "export PYTHONPATH=\$PYTHONPATH:~/PythonAPI/\$PYTHON2_EGG" >> .bashrc
-
+# ADD --chown=autoware carla-0.9.12-py2.7-linux-x86_64.egg ./PythonAPI
+# RUN echo "export PYTHON2_EGG=$(ls /home/autoware/PythonAPI | grep py2.)" >> .bashrc \
+    # && echo "export PYTHONPATH=\$PYTHONPATH:~/PythonAPI/\$PYTHON2_EGG" >> .bashrc
+COPY ./PythonAPI/carla ./PythonAPI/carla
+COPY ./PythonAPI/util ./PythonAPI/util
 # CARLA ROS Bridge
 # There is some kind of mismatch between the ROS debian packages installed in the Autoware image and
 # the latest ros-melodic-ackermann-msgs and ros-melodic-derived-objects-msgs packages. As a
@@ -27,15 +28,21 @@ RUN echo "export PYTHON2_EGG=$(ls /home/autoware/PythonAPI | grep py2.)" >> .bas
 RUN sudo rm -f /etc/apt/sources.list.d/ros1-latest.list
 RUN sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key 4B63CF8FDE49746E98FA01DDAD19BAB3CBF125EA
 RUN sudo sh -c 'echo "deb http://snapshots.ros.org/melodic/2020-08-07/ubuntu $(lsb_release -sc) main" >> /etc/apt/sources.list.d/ros-snapshots.list'
+RUN rm /etc/apt/sources.list.d/cuda.list
+RUN rm /etc/apt/sources.list.d/nvidia-ml.list
 RUN sudo apt-get update && sudo apt-get install -y --no-install-recommends \
         python-pip \
         python-wheel \
         ros-melodic-ackermann-msgs \
         ros-melodic-derived-object-msgs \
     && sudo rm -rf /var/lib/apt/lists/*
-RUN pip install simple-pid pygame networkx==2.2
+RUN pip install simple-pid pygame networkx==2.2 transforms3d==0.3.1
 
-RUN git clone -b '0.9.10.1' --recurse-submodules https://github.com/carla-simulator/ros-bridge.git
+# RUN git clone --recurse-submodules https://github.com/carla-simulator/ros-bridge.git
+RUN git clone --recurse-submodules https://github.com/carla-simulator/ros-bridge.git \
+    && cd ros-bridge \
+    && git checkout tags/'0.9.12' \
+    && cd ..
 
 # CARLA Autoware agent
 COPY --chown=autoware . ./carla-autoware
@@ -51,6 +58,8 @@ RUN cd carla_ws/src \
 RUN echo "export CARLA_AUTOWARE_CONTENTS=~/autoware-contents" >> .bashrc \
     && echo "source ~/carla_ws/devel/setup.bash" >> .bashrc \
     && echo "source ~/Autoware/install/setup.bash" >> .bashrc
+
+ENV PYTHONPATH=$PYTHONPATH:/home/autoware/PythonAPI/carla/dist/carla-0.9.12-py2.7-linux-x86_64.egg:/home/autoware/PythonAPI/carla:/home/autoware/PythonAPI/carla/agents
 
 CMD ["/bin/bash"]
 
