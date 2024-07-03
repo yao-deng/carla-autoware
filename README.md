@@ -30,6 +30,7 @@ git clone --recurse-submodules git@github.com:yao-deng/carla-autoware.git
 ```sh
 cd carla-autoware && ./build.sh
 ```
+Note: in `Dockerfile`, change `carla-0.9.12-py2.7-linux-x86_64.egg` in Line 62 to the your carla version.
 
 This will generate a `carla-autoware:latest` docker image.
 
